@@ -1,0 +1,5 @@
+# Demo hosts for TEST MODE (served by tests/fake_ssh.sh sandboxes, no network)
+Host demo-11.20
+Host demo-H800-1
+Host demo-H800-2
+Host bad-offline

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data Transfer</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main class="page">
+  <header class="top">
+    <div>
+      <div class="eyebrow">LOCAL TOOL / RSYNC + SSH</div>
+      <h1>Data Transfer</h1>
+      <p class="subtitle">用一个清晰的界面，在本地和 SSH 服务器之间传输文件与目录。</p>
+    </div>
+    <div class="top-pills"><div class="pill pill-test" id="testBadge" hidden>测试模式 · 模拟 SSH</div><div class="pill pill-local"><span class="dot"></span>本机运行</div></div>
+  </header>
+
+  <section class="grid">
+    <!-- 01 传输设置 -->
+    <article class="card">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">TRANSFER SETUP</div>
+          <h2>传输设置</h2>
+        </div>
+        <div class="step">01</div>
+      </div>
+
+      <div class="field">
+        <label for="local">本地地址</label>
+        <div class="input-row">
+          <input id="local" type="text" spellcheck="false" autocomplete="off"
+                 placeholder="/Users/kai/Data/Video/real_data/episode3_manual/mono-2">
+          <button id="chooseFolder" class="icon-btn" type="button" aria-label="打开文件管理器" title="打开文件管理器">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2.2h7.5A2.5 2.5 0 0 1 21 9.7v7.8A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z"/>
+              <path d="M3 10h18"/>
+            </svg>
+          </button>
+        </div>
+        <p class="hint">本地源路径或本地目标目录</p>
+      </div>
+
+      <div class="field">
+        <label id="serversLabel">服务器地址</label>
+        <div class="multiselect" id="servers">
+          <button type="button" class="ms-toggle" id="serversToggle" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="serversLabel">
+            <span class="ms-summary placeholder" id="serversSummary">选择服务器</span>
+            <svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="ms-menu" id="serversMenu" role="listbox" aria-multiselectable="true" hidden>
+            <div class="ms-options" id="serversOptions"></div>
+            <div class="ms-footer">
+              <button type="button" class="link-btn" id="refreshHosts">刷新 config</button>
+              <span class="ms-count" id="serversCount"></span>
+            </div>
+          </div>
+        </div>
+        <p class="hint">选项来自本机 ~/.ssh/config，可多选。后台会为每台服务器拼接最终地址。</p>
+      </div>
+
+      <div class="field">
+        <label for="remotePath">远程路径</label>
+        <input id="remotePath" type="text" spellcheck="false" autocomplete="off"
+               placeholder="/home/keal_yue/DataSets/real_data/episode3_manual/mono-2/checked_videos">
+        <p class="hint">只填写服务器上的路径，不要重复填写服务器别名。</p>
+      </div>
+
+      <div class="field">
+        <label>传输方向</label>
+        <div class="directions" role="radiogroup">
+          <label class="dir-card">
+            <input type="radio" name="direction" value="local_to_server" checked>
+            <span class="radio"></span>
+            <span><strong>本地 → 服务器</strong><small>将本地地址上传到服务器地址</small></span>
+          </label>
+          <label class="dir-card">
+            <input type="radio" name="direction" value="server_to_local">
+            <span class="radio"></span>
+            <span><strong>服务器 → 本地</strong><small>将服务器地址下载到本地地址</small></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="startBtn" class="btn primary" type="button">开始传输
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </button>
+        <button id="stopBtn" class="btn danger" type="button" disabled>停止传输</button>
+      </div>
+      <p class="form-msg" id="formMsg" role="alert"></p>
+    </article>
+
+    <!-- 02 实时状态 -->
+    <article class="card">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">LIVE STATUS</div>
+          <h2>实时状态</h2>
+        </div>
+        <div class="pill status" id="statusPill" data-state="ready"><span class="dot"></span><span id="statusText">就绪</span></div>
+      </div>
+      <div class="progress-block">
+        <div class="progress-top"><span class="muted">总体进度</span><span class="percent" id="percent">0%</span></div>
+        <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="muted">当前速度</span><strong id="speed">0 B/s</strong></div>
+        <div class="stat"><span class="muted">预计剩余时间</span><strong id="eta">--</strong></div>
+      </div>
+      <dl class="kv">
+        <dt>本地路径</dt><dd id="curLocal">--</dd>
+        <dt>当前服务器</dt><dd id="curServer">--</dd>
+        <dt>远程路径</dt><dd id="curRemote">--</dd>
+      </dl>
+      <ul class="results" id="results"></ul>
+    </article>
+
+    <!-- 功能描述 -->
+    <article class="card">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">FEATURES</div>
+          <h2>功能描述</h2>
+        </div>
+      </div>
+      <ul class="features">
+        <li><span class="ficon">⇄</span><div><strong>双向传输</strong><p>本地 → 服务器上传，或服务器 → 本地下载。</p></div></li>
+        <li><span class="ficon">▦</span><div><strong>多服务器</strong><p>一次选择多台 SSH 别名，按顺序逐台传输，下载自动按别名分目录。</p></div></li>
+        <li><span class="ficon">◈</span><div><strong>适合大文件</strong><p>整文件传输、不压缩，适合视频与大型数据集。</p></div></li>
+        <li><span class="ficon">↻</span><div><strong>可续传</strong><p>使用 --partial 保留未完成文件，停止后再次开始即可继续。</p></div></li>
+      </ul>
+    </article>
+
+    <!-- 传输日志 -->
+    <article class="card">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">TRANSFER LOG</div>
+          <h2>传输日志</h2>
+        </div>
+        <button type="button" class="btn ghost small" id="clearLog">清空</button>
+      </div>
+      <pre class="log" id="log" aria-live="polite"></pre>
+    </article>
+  </section>
+
+  <footer class="foot">SSH 密钥和密码由本机 SSH 配置管理，工具不会保存密码。</footer>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# test fixture (not the user's real config)
+Host *
+    ServerAliveInterval 30
+Include conf.d/*.conf
+Host 11.20
+    HostName 10.0.11.20
+    User keal_yue
+Host H800-1 H800-2
+    HostName 10.0.0.81
+Host=jump
+Host !blocked gpu-?? gpu-0?
+Host H800-1   # duplicate, should be deduped
+Include ssh_config
